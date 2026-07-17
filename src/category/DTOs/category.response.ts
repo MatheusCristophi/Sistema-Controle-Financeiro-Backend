@@ -1,11 +1,20 @@
 import { CategoryEntity } from "../category.entity";
 
-export class CategoryDTO {
-    description:string;
-    createDate:Date;
+export class CategoryResponse {
+    description: string;
+    createDate: Date;
 
-    fromCategory(category:CategoryEntity){
-        this.description = category.decription;
-        this.createDate = category.createDate;
+    static fromCategory(category: CategoryEntity): CategoryResponse {
+
+        return {
+            description: category.decription,
+            createDate: category.createDate
+        }
+    }
+
+    static fromCategories(
+        categories: CategoryEntity[]
+    ): CategoryResponse[] {
+        return categories.map(CategoryResponse.fromCategory);
     }
 }

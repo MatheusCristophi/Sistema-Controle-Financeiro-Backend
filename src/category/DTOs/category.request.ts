@@ -2,7 +2,7 @@ import { CategoryEntity } from "../category.entity";
 import { IsString } from 'class-validator'
 
 
-export class CategoryDTO {
+export class CategoryRequest {
 
     @IsString({message:"Digite o Nome da Categoria"})
     description:string;
