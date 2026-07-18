@@ -1,9 +1,20 @@
+import { UserEntity } from "../users.entity";
+
 export class UserResponse {
 
-    name:string;
+    name: string;
 
-    email:string;
+    email: string;
 
-    password:string;
+    saldo: number;
 
+    static fromUser(
+        user: UserEntity
+    ): UserResponse {
+        return {
+            name: user.name,
+            email: user.email,
+            saldo: user.saldo
+        }
+    }
 }

@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm'
 import { CategoryEntity } from './category.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoryResponse } from './DTOs/category.response';
 import { CategoryRequest } from './DTOs/category.request';
+import { UserEntity } from 'src/users/users.entity';
+import { error } from 'console';
 
 @Injectable()
 export class CategoryService {
@@ -21,43 +23,97 @@ export class CategoryService {
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        var category = new CategoryEntity();
+        try {
+            const user = await queryRunner.manager.findOneBy(
+                UserEntity, { id: curretUserId }
+            );
 
-        if (!category) {
+            if (!user) {
+                await queryRunner.rollbackTransaction();
+                throw new BadRequestException("Erro ao criar a categoria");
+            }
+
+            var category = new CategoryEntity();
+
+            category.decription = categoryRequest.description;
+            category.createDate = new Date();
+            category.user = user;
+
+            await queryRunner.manager.save(category);
+            await queryRunner.commitTransaction();
+
+            return CategoryResponse.fromCategory(category);
+        } catch {
             await queryRunner.rollbackTransaction();
+            if (error instanceof BadRequestException) throw error;
+            throw new BadRequestException("Houve um erro ao criar a categoria");
+        } finally {
             await queryRunner.release();
-            throw new NotFoundException("Categoria não encontrada");
         }
-
-        category.decription = categoryRequest.description;
-        category.createDate = new Date();
-
-        await queryRunner.manager.save(category);
-        await queryRunner.release();
-
-        return CategoryResponse.fromCategory(category);
     }
 
-    async categoryByName(name: string, curretUserId: string): Promise<CategoryResponse> {
+    async categoryByName(name: string, curretUserId: string): Promise<CategoryResponse[]> {
+
         const queryRunner = this.dataSource.createQueryRunner();
+
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        const category = await this.categoryRepository.findOneBy({ decription: 'name' });
+        try {
+            const user = await queryRunner.manager.findOneBy(UserEntity, {id: curretUserId})
 
-        if (!category) {
+            if (!user) {
+                throw new NotFoundException("Usuário não encontrado")
+            }
+
+            const category = await queryRunner.manager.findBy(CategoryEntity, { decription: name, user: user }) || [];
+
+            if (!category) {
+                await queryRunner.rollbackTransaction();
+                throw new NotFoundException("categoria não encontrada");
+            }
+
+            if (name.length <= 0) {
+                await queryRunner.rollbackTransaction();
+                throw new BadRequestException("O Tamanho deve ser maior que 0");
+            }
+            await queryRunner.commitTransaction();
+            return CategoryResponse.fromCategories(category);
+
+        } catch {
             await queryRunner.rollbackTransaction();
-            await queryRunner.release();
-            throw new NotFoundException("categoria não encontrada");
+            if (error instanceof BadRequestException) throw error
+            throw new BadRequestException("Não foi possível buscar as Categorias");
         }
-
-        return CategoryResponse.fromCategory(category);
+        finally {
+            await queryRunner.release();
+        }
     }
 
-    async getAllCategories(): Promise<CategoryResponse[]> {
-        const allCategories = await this.categoryRepository.find();
+    async getAllCategories(currentUserId: string): Promise<CategoryResponse[]> {
 
-        return CategoryResponse.fromCategories(allCategories);
+        const queryRunner = this.dataSource.createQueryRunner();
+
+        queryRunner.connect();
+        queryRunner.startTransaction();
+
+        try {
+            const allCategories = await queryRunner.manager.find(CategoryEntity);
+
+            allCategories.filter(c => c.user.id === currentUserId);
+
+            if (!allCategories) {
+                throw new NotFoundException("Transações não encontradas");
+            }
+
+            return CategoryResponse.fromCategories(allCategories);
+        } catch {
+            await queryRunner.rollbackTransaction();
+            if (error instanceof BadRequestException) throw error
+            throw new BadRequestException("Não foi possível buscar as transações")
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     async updateCategory(categoryRequest: CategoryRequest, categoryId: string, curretUserId: string): Promise<CategoryResponse> {
@@ -65,36 +121,63 @@ export class CategoryService {
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        const category = await this.categoryRepository.findOneBy({ id: categoryId });
+        try {
+            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
 
-        if (!category) {
+            if (!category) {
+                await queryRunner.rollbackTransaction();
+
+                throw new NotFoundException("Id não encontrado");
+            }
+
+            if (category.user.id !== curretUserId) {
+                await queryRunner.rollbackTransaction();
+
+                throw new BadRequestException("Não foi possível criar uma categoria");
+            }
+
+            category.decription = categoryRequest.description;
+            await queryRunner.manager.save(category);
+            await queryRunner.commitTransaction();
+            return CategoryResponse.fromCategory(category);
+        } catch {
             await queryRunner.rollbackTransaction();
+            if (error instanceof BadRequestException) throw error
+            throw new BadRequestException("Não foi possível atualizar a Categoria");
+        } finally {
             await queryRunner.release();
-            throw new NotFoundException("Id não encontrado");
         }
-
-        category.decription = categoryRequest.description;
-        await queryRunner.manager.save(category);
-        await queryRunner.release();
-        return CategoryResponse.fromCategory(category);
     }
 
-    async deleteCategory(uuid: string, curretUserId: string): Promise<void> {
+    async deleteCategory(categoryId: string, curretUserId: string): Promise<void> {
 
         const queryRunner = this.dataSource.createQueryRunner();
 
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        var category = await this.categoryRepository.findOneBy({ id: uuid });
+        try {
+            var category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
 
-        if (!category) {
+            if (!category) {
+                await queryRunner.rollbackTransaction();
+                throw new NotFoundException("Id não encontrado");
+            }
+
+            if (category.user.id !== curretUserId) {
+                await queryRunner.rollbackTransaction();
+                throw new BadRequestException("Não foi possível criar uma categoria");
+            }
+
+            await queryRunner.manager.delete(CategoryEntity, categoryId);
+            await queryRunner.commitTransaction();
+
+        } catch {
             await queryRunner.rollbackTransaction();
+            if (error instanceof BadRequestException) throw error
+            throw new BadRequestException("Não foi possível deletar a categoria");
+        } finally {
             await queryRunner.release();
-            throw new NotFoundException("Id não encontrado");
         }
-
-        this.categoryRepository.delete(uuid);
-        await queryRunner.release();
     }
 }

@@ -4,21 +4,31 @@ import { TransactionEntity } from "../transaction.entity";
 
 export class TransactionResponse {
 
-    description:string;
+    description: string;
 
-    value:number;
+    value: number;
 
-    categoryId:string;
+    categoryId: string;
 
-    status:Status;
+    status: Status;
 
-    paymentMethod:PaymentMethod;
+    paymentMethod: PaymentMethod;
 
-    fromTransaction(transaction:TransactionEntity){
-        this.description = transaction.description;
-        this.value = transaction.value;
-        this.categoryId = transaction.category.id;
-        this.status = transaction.status;
-        this.paymentMethod = transaction.paymentMethod;
+    static fromTransaction(
+        transaction: TransactionEntity
+    ): TransactionResponse {
+        return {
+            description: transaction.description,
+            value: transaction.value,
+            categoryId: transaction.category.id,
+            status: transaction.status,
+            paymentMethod: transaction.paymentMethod
+        }
+    }
+
+    static fromTransactions(
+        transactions:TransactionEntity[]
+    ): TransactionResponse[] {
+        return transactions.map(TransactionResponse.fromTransaction);
     }
 }
