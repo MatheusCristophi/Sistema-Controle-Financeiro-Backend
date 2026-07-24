@@ -1,6 +1,5 @@
 import { IsDecimal, IsEnum, IsString, Length } from "class-validator";
 import { PaymentMethod } from "src/enum/payment.method";
-import { Status } from "src/enum/status.enum";
 
 export class TransactionRequest {
     
@@ -15,9 +14,6 @@ export class TransactionRequest {
 
     @IsString({message: 'Id Não encontrado'})
     categoryId:string;
-
-    @IsEnum(Status, {message:'Enum inválido'})
-    status:Status;
 
     @IsEnum(PaymentMethod, {message:'Enum inválido'})
     paymentMethod:PaymentMethod;

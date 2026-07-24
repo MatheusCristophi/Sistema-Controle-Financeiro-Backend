@@ -1,18 +1,38 @@
-import { DataSource, Repository } from 'typeorm'
+import { DataSource } from 'typeorm'
 import { UserEntity } from './users.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { UserRequest } from './DTOs/users.request';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { UserResponse } from './DTOs/users.response';
-import { error } from 'console';
 
 export class UserService {
 
     constructor(
-        @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>,
         private readonly dataSource: DataSource
     ) { }
+
+    async getBalance(userId:string):Promise<number> {
+        const queryRunner = this.dataSource.createQueryRunner();
+
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const user = await queryRunner.manager.findOneBy(UserEntity, {id: userId});
+
+            if(!user) {
+                throw new UnauthorizedException("Não foi possível buscar o usuário");
+            }
+
+            await queryRunner.commitTransaction();
+            return Number(user.balance);
+            
+        } catch(error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
 
     async updateUser(userRequest: UserRequest, currentUserId: string): Promise<UserResponse> {
         const queryRunner = this.dataSource.createQueryRunner();
@@ -23,13 +43,7 @@ export class UserService {
         try {
             const user = await queryRunner.manager.findOneBy(UserEntity, { id: currentUserId });
             if (!user) {
-                await queryRunner.rollbackTransaction();
                 throw new BadRequestException("Não foi possível alterar os dados do usuário");
-            }
-
-            if (user.id !== currentUserId) {
-                await queryRunner.rollbackTransaction();
-                throw new NotFoundException("Não foi possível alterar os dados do usuário");
             }
 
             user.name = userRequest.name;
@@ -40,12 +54,11 @@ export class UserService {
             await queryRunner.commitTransaction();
 
             return UserResponse.fromUser(user);
-        } catch {
+        } catch(error) {
             await queryRunner.rollbackTransaction();
-            if (error instanceof error) throw error
-            throw new BadRequestException("Houve um erro ao alterar os dados do usuário");
+            throw error;
         } finally {
-            queryRunner.release();
+            await queryRunner.release();
         }
     }
 
@@ -59,21 +72,16 @@ export class UserService {
             const user = await queryRunner.manager.findOneBy(UserEntity, { id: currentUserId });
 
             if (!user) {
-                await queryRunner.rollbackTransaction();
-                throw new BadRequestException("Erro ao deletar Usuário");
-            }
-
-            if (user.id !== currentUserId) {
-                await queryRunner.rollbackTransaction();
                 throw new BadRequestException("Erro ao deletar Usuário");
             }
 
             await queryRunner.manager.delete(UserEntity, { id: currentUserId });
-            queryRunner.commitTransaction();
-        } catch {
-            queryRunner.rollbackTransaction();
-            if (error instanceof BadRequestException) throw error
-            throw new BadRequestException("Erro ao deletar Usuário");
+            await queryRunner.commitTransaction();
+        } catch(error) {
+            await queryRunner.rollbackTransaction();
+            throw error
+        } finally {
+            await queryRunner.release();
         }
     }
 }

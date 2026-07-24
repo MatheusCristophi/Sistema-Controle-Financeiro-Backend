@@ -5,11 +5,11 @@ import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGenerate
 @Entity()
 export class CategoryEntity{
 
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn('increment')
     id:string;
 
     @Column()
-    decription:string;
+    description:string;
 
     @CreateDateColumn({
         type:'timestamp'

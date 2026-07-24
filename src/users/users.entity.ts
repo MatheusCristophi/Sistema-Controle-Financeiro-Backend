@@ -28,5 +28,5 @@ export class UserEntity {
         precision: 10,
         scale: 2
     })
-    saldo:number;
+    balance:number;
 }

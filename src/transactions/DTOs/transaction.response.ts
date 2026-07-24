@@ -1,5 +1,4 @@
 import { PaymentMethod } from "src/enum/payment.method";
-import { Status } from "src/enum/status.enum";
 import { TransactionEntity } from "../transaction.entity";
 
 export class TransactionResponse {
@@ -10,8 +9,6 @@ export class TransactionResponse {
 
     categoryId: string;
 
-    status: Status;
-
     paymentMethod: PaymentMethod;
 
     static fromTransaction(
@@ -21,7 +18,6 @@ export class TransactionResponse {
             description: transaction.description,
             value: transaction.value,
             categoryId: transaction.category.id,
-            status: transaction.status,
             paymentMethod: transaction.paymentMethod
         }
     }

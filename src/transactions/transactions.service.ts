@@ -3,7 +3,7 @@ import { DataSource, Repository } from 'typeorm'
 import { TransactionEntity } from './transaction.entity';
 import { TransactionResponse } from './DTOs/transaction.response';
 import { UserEntity } from 'src/users/users.entity';
-import { ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { TransactionRequest } from './DTOs/transaction.request';
 import { CategoryEntity } from 'src/category/category.entity';
 import { IncomeEntity } from './income.entity';
@@ -41,10 +41,12 @@ export class TransactionService {
             transaction.description = transactionRequest.description;
             transaction.value = transactionRequest.value;
             transaction.category = category;
-            transaction.status = transactionRequest.status;
             transaction.paymentMethod = transactionRequest.paymentMethod
 
+            user.balance = Number(user.balance) + Number(transaction.value);
+
             await queryRunner.manager.save(transaction);
+            await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
             return TransactionResponse.fromTransaction(transaction);
         } catch(error) {
@@ -79,10 +81,12 @@ export class TransactionService {
             transaction.description = transactionRequest.description;
             transaction.value = transactionRequest.value;
             transaction.category = category;
-            transaction.status = transactionRequest.status;
             transaction.paymentMethod = transactionRequest.paymentMethod
 
+            user.balance = Number(user.balance) - Number(transaction.value);
+
             await queryRunner.manager.save(transaction);
+            await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
             return TransactionResponse.fromTransaction(transaction);
         } catch(error) {
@@ -102,16 +106,14 @@ export class TransactionService {
 
             relations: {
                 transactions: true
-            }
+            },
         });
 
         if (!user) {
             throw new NotFoundException("Suas transações não foram encontradas")
         }
 
-        const transactions: TransactionEntity[] = user.transactions || [];
-
-        return TransactionResponse.fromTransactions(transactions);
+        return TransactionResponse.fromTransactions(user.transactions);
     }
 
     async updateTransaction(transactionRequest: TransactionRequest, transactionId: string, categoryId:string, userId: string): Promise<TransactionResponse>{
@@ -136,7 +138,6 @@ export class TransactionService {
             transaction.description = transactionRequest.description;
             transaction.value = transactionRequest.value;
             transaction.category = category;
-            transaction.status = transactionRequest.status;
             transaction.paymentMethod = transactionRequest.paymentMethod
 
             await queryRunner.manager.save(transaction);

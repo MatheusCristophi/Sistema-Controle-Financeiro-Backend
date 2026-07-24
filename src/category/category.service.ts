@@ -1,10 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DataSource } from 'typeorm'
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { DataSource, ILike, Like } from 'typeorm'
 import { CategoryEntity } from './category.entity';
 import { CategoryResponse } from './DTOs/category.response';
 import { CategoryRequest } from './DTOs/category.request';
 import { UserEntity } from 'src/users/users.entity';
-import { error } from 'console';
 
 @Injectable()
 export class CategoryService {
@@ -26,13 +25,12 @@ export class CategoryService {
             );
 
             if (!user) {
-                await queryRunner.rollbackTransaction();
                 throw new BadRequestException("Erro ao criar a categoria");
             }
 
             var category = new CategoryEntity();
 
-            category.decription = categoryRequest.description;
+            category.description = categoryRequest.description;
             category.createDate = new Date();
             category.user = user;
 
@@ -40,16 +38,19 @@ export class CategoryService {
             await queryRunner.commitTransaction();
 
             return CategoryResponse.fromCategory(category);
-        } catch {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
-            if (error instanceof BadRequestException) throw error;
-            throw new BadRequestException("Houve um erro ao criar a categoria");
+            throw error;
         } finally {
             await queryRunner.release();
         }
     }
 
     async categoryByName(name: string, curretUserId: string): Promise<CategoryResponse[]> {
+        
+        if (name.length <= 0) {
+            throw new BadRequestException("O Tamanho deve ser maior que 0");
+        }
 
         const queryRunner = this.dataSource.createQueryRunner();
 
@@ -57,30 +58,33 @@ export class CategoryService {
         await queryRunner.startTransaction();
 
         try {
-            const user = await queryRunner.manager.findOneBy(UserEntity, {id: curretUserId})
+            const user = await queryRunner.manager.findOne(UserEntity, {
+                where: {
+                    id: curretUserId
+                },
+                relations: {
+                    category: true
+                }
+            })
 
             if (!user) {
                 throw new NotFoundException("Usuário não encontrado")
             }
 
-            const category = await queryRunner.manager.findBy(CategoryEntity, { decription: name, user: user }) || [];
+            
+            const categoryWithName = await queryRunner.manager.findBy(CategoryEntity, {
+                description: ILike(`%${name}%`),
+                user: {
+                    id: user.id
+                }
+            });
 
-            if (!category) {
-                await queryRunner.rollbackTransaction();
-                throw new NotFoundException("categoria não encontrada");
-            }
-
-            if (name.length <= 0) {
-                await queryRunner.rollbackTransaction();
-                throw new BadRequestException("O Tamanho deve ser maior que 0");
-            }
             await queryRunner.commitTransaction();
-            return CategoryResponse.fromCategories(category);
+            return CategoryResponse.fromCategories(categoryWithName);
 
-        } catch {
+        } catch(error) {
             await queryRunner.rollbackTransaction();
-            if (error instanceof BadRequestException) throw error
-            throw new BadRequestException("Não foi possível buscar as Categorias");
+            throw error;
         }
         finally {
             await queryRunner.release();
@@ -91,23 +95,31 @@ export class CategoryService {
 
         const queryRunner = this.dataSource.createQueryRunner();
 
-        queryRunner.connect();
-        queryRunner.startTransaction();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
         try {
-            const allCategories = await queryRunner.manager.find(CategoryEntity);
+            const user = await queryRunner.manager.findOne(UserEntity, {
+                where: {
+                    id: currentUserId
+                },
+                relations: {
+                    category: true
+                }
+            });
 
-            allCategories.filter(c => c.user.id === currentUserId);
+            if(!user) {
+                throw new UnauthorizedException("Não foi possível buscar o usuário");
+            }
 
-            if (!allCategories) {
+            if (!user.category) {
                 throw new NotFoundException("Transações não encontradas");
             }
 
-            return CategoryResponse.fromCategories(allCategories);
-        } catch {
+            return CategoryResponse.fromCategories(user.category);
+        } catch(error) {
             await queryRunner.rollbackTransaction();
-            if (error instanceof BadRequestException) throw error
-            throw new BadRequestException("Não foi possível buscar as transações")
+            throw error;
         } finally {
             await queryRunner.release();
         }
@@ -119,28 +131,30 @@ export class CategoryService {
         await queryRunner.startTransaction();
 
         try {
-            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
+            const category = await queryRunner.manager.findOne(CategoryEntity, {
+                where: {
+                    id: categoryId
+                },
+                relations: {
+                    user: true
+                } 
+            });
 
             if (!category) {
-                await queryRunner.rollbackTransaction();
-
                 throw new NotFoundException("Id não encontrado");
             }
 
             if (category.user.id !== curretUserId) {
-                await queryRunner.rollbackTransaction();
-
                 throw new BadRequestException("Não foi possível criar uma categoria");
             }
 
-            category.decription = categoryRequest.description;
+            category.description = categoryRequest.description;
             await queryRunner.manager.save(category);
             await queryRunner.commitTransaction();
             return CategoryResponse.fromCategory(category);
-        } catch {
+        } catch(error) {
             await queryRunner.rollbackTransaction();
-            if (error instanceof BadRequestException) throw error
-            throw new BadRequestException("Não foi possível atualizar a Categoria");
+            throw error;
         } finally {
             await queryRunner.release();
         }
@@ -154,25 +168,29 @@ export class CategoryService {
         await queryRunner.startTransaction();
 
         try {
-            var category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
+            var category = await queryRunner.manager.findOne(CategoryEntity, {
+                where:{
+                    id: categoryId
+                },
+                relations: {
+                    user: true
+                }
+            });
 
             if (!category) {
-                await queryRunner.rollbackTransaction();
                 throw new NotFoundException("Id não encontrado");
             }
 
             if (category.user.id !== curretUserId) {
-                await queryRunner.rollbackTransaction();
-                throw new BadRequestException("Não foi possível criar uma categoria");
+                throw new UnauthorizedException("Não foi possível deletar a categoria");
             }
 
             await queryRunner.manager.delete(CategoryEntity, categoryId);
             await queryRunner.commitTransaction();
 
-        } catch {
+        } catch(error) {
             await queryRunner.rollbackTransaction();
-            if (error instanceof BadRequestException) throw error
-            throw new BadRequestException("Não foi possível deletar a categoria");
+            throw error;
         } finally {
             await queryRunner.release();
         }
