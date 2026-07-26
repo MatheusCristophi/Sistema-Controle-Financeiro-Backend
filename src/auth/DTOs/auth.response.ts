@@ -2,17 +2,17 @@ import { UserEntity } from "src/users/users.entity";
 
 export class AuthResponse{
 
+    token:string;
+
     name:string;
 
     email:string;
 
-    balance:number;
-
-    static fromAuth(user:UserEntity) {
+    static fromAuth(token:string ,user:UserEntity) {
         return {
+            token,
             name: user.name,
-            email: user.email,
-            balance: user.balance
+            email: user.email
         }
     }
 }

@@ -1,6 +1,7 @@
-import { IsEmail, IsStrongPassword } from "class-validator";  
+import { IsEmail, IsStrongPassword } from "class-validator";
 
-export class AuthLogin {
+export class LoginRequest {
+
     @IsEmail({}, { message: 'E-mail inválido' })
     email: string;
 

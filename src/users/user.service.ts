@@ -15,16 +15,15 @@ export class UserService {
     ) { }
 
     async getBalance(userId: string): Promise<number> {
-        const user = await this.userRepository.findOne({
-            where: {
-                id: userId
-            }
-        });
 
-        if (user) {
-            return user.balance;
+        const user = await this.userRepository.findOneBy({ id: userId });
+
+        
+        if (!user) {
+            throw new NotFoundException("Usuário não encontrado");
+        } else {
+            return UserResponse.fromUser(user).balance;
         }
-        throw new NotFoundException("Não foi possível buscar o usuário");
     }
 
     async updateUser(userRequest: UserRequest, currentUserId: string): Promise<UserResponse> {

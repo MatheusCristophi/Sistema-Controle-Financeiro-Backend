@@ -14,7 +14,7 @@ export class UserEntity {
     @Column({unique:true, nullable:false})
     email:string;
 
-    @Column({length:255})
+    @Column({length:255, nullable: false})
     password:string;
 
     @OneToMany(() => CategoryEntity, (category) => category.user)
