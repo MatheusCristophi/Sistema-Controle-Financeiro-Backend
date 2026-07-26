@@ -7,7 +7,7 @@ export class CategoryResponse {
     static fromCategory(category: CategoryEntity): CategoryResponse {
 
         return {
-            description: category.decription,
+            description: category.description,
             createDate: category.createDate
         }
     }

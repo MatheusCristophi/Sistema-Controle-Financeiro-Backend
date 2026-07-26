@@ -1,37 +1,30 @@
-import { DataSource } from 'typeorm'
-import { UserEntity } from './users.entity';
-import { UserRequest } from './DTOs/users.request';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserResponse } from './DTOs/users.response';
+import { UserRequest } from './DTOs/users.request';
+import * as bcrypt from 'bcrypt';
+import { UserEntity } from './users.entity';
+import { DataSource, Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm';
 
 export class UserService {
 
     constructor(
+        @InjectRepository(UserEntity)
+        private readonly userRepository: Repository<UserEntity>,
         private readonly dataSource: DataSource
     ) { }
 
-    async getBalance(userId:string):Promise<number> {
-        const queryRunner = this.dataSource.createQueryRunner();
-
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            const user = await queryRunner.manager.findOneBy(UserEntity, {id: userId});
-
-            if(!user) {
-                throw new UnauthorizedException("Não foi possível buscar o usuário");
+    async getBalance(userId: string): Promise<number> {
+        const user = await this.userRepository.findOne({
+            where: {
+                id: userId
             }
+        });
 
-            await queryRunner.commitTransaction();
-            return Number(user.balance);
-            
-        } catch(error) {
-            await queryRunner.rollbackTransaction();
-            throw error;
-        } finally {
-            await queryRunner.release();
+        if (user) {
+            return user.balance;
         }
+        throw new NotFoundException("Não foi possível buscar o usuário");
     }
 
     async updateUser(userRequest: UserRequest, currentUserId: string): Promise<UserResponse> {
@@ -48,13 +41,13 @@ export class UserService {
 
             user.name = userRequest.name;
             user.email = userRequest.email;
-            user.password = userRequest.password;
+            user.password = await bcrypt.hash(userRequest.password, 12);
 
             await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
 
             return UserResponse.fromUser(user);
-        } catch(error) {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {
@@ -77,7 +70,7 @@ export class UserService {
 
             await queryRunner.manager.delete(UserEntity, { id: currentUserId });
             await queryRunner.commitTransaction();
-        } catch(error) {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error
         } finally {

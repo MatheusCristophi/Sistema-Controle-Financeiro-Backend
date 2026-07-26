@@ -8,6 +8,6 @@ export class CategoryRequest {
     description:string;
 
     fromCategory(category:CategoryEntity){
-        this.description = category.decription;
+        this.description = category.description;
     }
 }

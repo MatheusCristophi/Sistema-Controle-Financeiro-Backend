@@ -2,7 +2,7 @@ import { TransactionEntity } from 'src/transactions/transaction.entity';
 import { UserEntity } from 'src/users/users.entity';
 import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 
-@Entity()
+@Entity('transaction_entity')
 export class CategoryEntity{
 
     @PrimaryGeneratedColumn('increment')

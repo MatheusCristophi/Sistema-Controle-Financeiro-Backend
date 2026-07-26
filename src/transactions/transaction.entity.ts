@@ -3,7 +3,7 @@ import { PaymentMethod } from 'src/enum/payment.method';
 import { UserEntity } from 'src/users/users.entity';
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, TableInheritance } from 'typeorm'
 
-@Entity()
+@Entity('transaction_entity')
 @TableInheritance({column: {type: 'varchar', name:'type'}})
 export class TransactionEntity {
     

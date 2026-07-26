@@ -14,7 +14,7 @@ export class UserResponse {
         return {
             name: user.name,
             email: user.email,
-            saldo: user.saldo
+            saldo: user.balance
         }
     }
 }

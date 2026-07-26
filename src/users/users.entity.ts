@@ -2,7 +2,7 @@ import { CategoryEntity } from 'src/category/category.entity';
 import { TransactionEntity } from 'src/transactions/transaction.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 
-@Entity()
+@Entity('users_entity')
 export class UserEntity {
 
     @PrimaryGeneratedColumn('uuid')
@@ -26,7 +26,8 @@ export class UserEntity {
     @Column({
         type:'decimal',
         precision: 10,
-        scale: 2
+        scale: 2,
+        default: 0
     })
     balance:number;
 }
