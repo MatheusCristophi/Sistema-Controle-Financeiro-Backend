@@ -20,8 +20,12 @@ export class CategoryService {
         await queryRunner.startTransaction();
 
         try {
-            const user = await queryRunner.manager.findOneBy(
-                UserEntity, { id: curretUserId }
+            const user = await queryRunner.manager.findOne(
+                UserEntity, { 
+                    where:{
+                        id: curretUserId
+                    }
+                }
             );
 
             if (!user) {
@@ -32,6 +36,7 @@ export class CategoryService {
 
             category.description = categoryRequest.description;
             category.createDate = new Date();
+            category.transactions = [];
             category.user = user;
 
             await queryRunner.manager.save(category);
