@@ -41,7 +41,7 @@ export class CategoryController {
     @UseGuards(AuthGuard)
     async categoryUpdate(
         @Body() categoryRequest:CategoryRequest,
-        @Param() categoryId:string,
+        @Param('id') categoryId:string,
         @CurrentUser() user:JwtPayload
     ) {
         return this.categoryService.updateCategory(categoryRequest, categoryId, user.sub);
@@ -50,7 +50,7 @@ export class CategoryController {
     @Delete(':id')
     @UseGuards(AuthGuard)
     async categoryDelete(
-        @Param() categoryId:string,
+        @Param('id') categoryId:string,
         @CurrentUser() user:JwtPayload
     ) {
         return this.categoryService.deleteCategory(categoryId, user.sub);
