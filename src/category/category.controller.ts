@@ -13,7 +13,7 @@ export class CategoryController {
 
     @Post()
     @UseGuards(AuthGuard)
-    async categoryCreate(
+    categoryCreate(
         @CurrentUser() user:JwtPayload,
         @Body() categoryRequest: CategoryRequest
     ) {
@@ -22,7 +22,7 @@ export class CategoryController {
 
     @Post('name')
     @UseGuards(AuthGuard)
-    async getCategoryName(
+    getCategoryName(
         @Body('name') name:string,
         @CurrentUser() user:JwtPayload
     ) {
@@ -31,7 +31,7 @@ export class CategoryController {
 
     @Get('all')
     @UseGuards(AuthGuard)
-    async allCategories(
+    allCategories(
         @CurrentUser() user:JwtPayload
     ) {
         return this.categoryService.getAllCategories(user.sub);
@@ -39,7 +39,7 @@ export class CategoryController {
 
     @Put(':id')
     @UseGuards(AuthGuard)
-    async categoryUpdate(
+    categoryUpdate(
         @Body() categoryRequest:CategoryRequest,
         @Param('id') categoryId:string,
         @CurrentUser() user:JwtPayload
@@ -49,7 +49,7 @@ export class CategoryController {
 
     @Delete(':id')
     @UseGuards(AuthGuard)
-    async categoryDelete(
+    categoryDelete(
         @Param('id') categoryId:string,
         @CurrentUser() user:JwtPayload
     ) {
