@@ -17,7 +17,12 @@ export class TransactionService {
         private readonly dataSource: DataSource
     ) { }
 
-    async createIncome(transactionRequest: TransactionRequest, userId: string, categoryId:string): Promise<TransactionResponse> {
+    balanceType(transaction: TransactionEntity): number {
+        const value = Number(transaction.value);
+        return transaction instanceof ExpensesEntity ? -value : value;
+    }
+
+    async createIncome(transactionRequest: TransactionRequest, userId: string, categoryId: string): Promise<TransactionResponse> {
         const queryRunner = this.dataSource.createQueryRunner();
 
         await queryRunner.connect();
@@ -26,7 +31,7 @@ export class TransactionService {
         try {
             const user = await queryRunner.manager.findOneBy(UserEntity, { id: userId });
 
-            const category = await queryRunner.manager.findOneBy(CategoryEntity, {id: categoryId});
+            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
 
             if (!user) {
                 throw new UnauthorizedException("Não foi possível buscar o usuário")
@@ -36,7 +41,7 @@ export class TransactionService {
                 throw new NotFoundException("Não foi possível buscar a categoria")
             }
 
-            const transaction:IncomeEntity = new IncomeEntity();
+            const transaction: IncomeEntity = new IncomeEntity();
             transaction.user = user;
             transaction.description = transactionRequest.description;
             transaction.value = transactionRequest.value;
@@ -49,7 +54,7 @@ export class TransactionService {
             await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
             return TransactionResponse.fromTransaction(transaction);
-        } catch(error) {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error
         } finally {
@@ -57,7 +62,7 @@ export class TransactionService {
         }
     }
 
-    async createExpense(transactionRequest: TransactionRequest, userId: string, categoryId:string): Promise<TransactionResponse> {
+    async createExpense(transactionRequest: TransactionRequest, userId: string, categoryId: string): Promise<TransactionResponse> {
         const queryRunner = this.dataSource.createQueryRunner();
 
         await queryRunner.connect();
@@ -66,7 +71,7 @@ export class TransactionService {
         try {
             const user = await queryRunner.manager.findOneBy(UserEntity, { id: userId });
 
-            const category = await queryRunner.manager.findOneBy(CategoryEntity, {id: categoryId});
+            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
 
             if (!user) {
                 throw new UnauthorizedException("Não foi possível buscar o usuário")
@@ -76,7 +81,7 @@ export class TransactionService {
                 throw new NotFoundException("Não foi possível buscar a categoria")
             }
 
-            const transaction:ExpensesEntity = new ExpensesEntity();
+            const transaction: ExpensesEntity = new ExpensesEntity();
             transaction.user = user;
             transaction.description = transactionRequest.description;
             transaction.value = transactionRequest.value;
@@ -89,7 +94,7 @@ export class TransactionService {
             await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
             return TransactionResponse.fromTransaction(transaction);
-        } catch(error) {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error
         } finally {
@@ -116,35 +121,41 @@ export class TransactionService {
         return TransactionResponse.fromTransactions(user.transactions);
     }
 
-    async updateTransaction(transactionRequest: TransactionRequest, transactionId: string, categoryId:string, userId: string): Promise<TransactionResponse>{
+    async updateTransaction(transactionRequest: TransactionRequest, transactionId: string, categoryId: string, userId: string): Promise<TransactionResponse> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        try{
-            const user = await queryRunner.manager.findOneBy(UserEntity, {id: userId});
-            const transaction = await queryRunner.manager.findOneBy(TransactionEntity, {id:transactionId});
+        try {
+            const user = await queryRunner.manager.findOneBy(UserEntity, { id: userId });
 
             if (!user) {
                 throw new NotFoundException("Usuário não encontrado")
             }
 
-            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId, user: user});
+            const transaction = await queryRunner.manager.findOneBy(TransactionEntity, { id: transactionId, user: user });
+
+            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId, user: user });
 
             if (!transaction || !category) {
                 throw new NotFoundException("Não foi possível buscar a transação");
             }
+
+            user.balance = Number(user.balance) - Number(this.balanceType(transaction));
 
             transaction.description = transactionRequest.description;
             transaction.value = transactionRequest.value;
             transaction.category = category;
             transaction.paymentMethod = transactionRequest.paymentMethod
 
+            user.balance = Number(user.balance) + Number(this.balanceType(transaction));
+
             await queryRunner.manager.save(transaction);
+            await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
             return TransactionResponse.fromTransaction(transaction);
 
-        } catch(error) {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {
@@ -152,27 +163,29 @@ export class TransactionService {
         }
     }
 
-    async deleteTransaction(transactionId:string, userId:string):Promise<void> {
+    async deleteTransaction(transactionId: string, userId: string): Promise<void> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            const user = await queryRunner.manager.findOneBy(UserEntity, {id: userId});
-            
+            const user = await queryRunner.manager.findOneBy(UserEntity, { id: userId });
+
             if (!user) {
                 throw new NotFoundException("Não foi possível encontrar o usuário");
             }
 
-            const transaction = await queryRunner.manager.findOneBy(TransactionEntity, {id: transactionId, user: user});
+            const transaction = await queryRunner.manager.findOneBy(TransactionEntity, { id: transactionId, user: user });
 
-            if(!transaction) {
+            if (!transaction) {
                 throw new NotFoundException("Não foi possível buscar a transação");
             }
 
-            await queryRunner.manager.delete(TransactionEntity, {id:transactionId})
+            user.balance = Number(user.balance) - Number(this.balanceType(transaction));
+
+            await queryRunner.manager.delete(TransactionEntity, { id: transactionId })
             await queryRunner.commitTransaction();
-        } catch(error) {
+        } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {

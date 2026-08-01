@@ -7,7 +7,7 @@ export class LoginRequest {
 
     @IsStrongPassword(
         {},
-        { message: 'A senha precisa ter no minimo 8 caracteres e uma letra maiuscula' }
+        { message: 'A senha está muito Fraca' }
     )
     password: string;
 }

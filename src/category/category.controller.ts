@@ -20,7 +20,7 @@ export class CategoryController {
         return this.categoryService.createCategory(categoryRequest, user.sub);
     }
 
-    @Get()
+    @Post('name')
     @UseGuards(AuthGuard)
     async getCategoryName(
         @Body('name') name:string,
