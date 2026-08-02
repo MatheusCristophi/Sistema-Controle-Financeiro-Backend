@@ -16,6 +16,9 @@ export class TransactionEntity {
     @Column({nullable:false})
     description:string;
 
+    @Column()
+    type:string;
+
     @Column({
         type:'decimal',
         precision: 10,

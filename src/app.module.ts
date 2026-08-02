@@ -5,6 +5,9 @@ import { UsersModule } from './users/users.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
+import { DashboardService } from './dashboard/dashboard.service';
+import { DashboardController } from './dashboard/dashboard.controller';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -24,6 +27,7 @@ import { AuthModule } from './auth/auth.module';
     TransactionsModule,
     CategoryModule,
     AuthModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [],
