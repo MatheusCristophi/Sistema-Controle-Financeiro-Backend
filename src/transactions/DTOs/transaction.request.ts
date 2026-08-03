@@ -8,9 +8,9 @@ export class TransactionRequest {
     @IsDecimal({}, {message:'O Valor deve ser um número'})
     value:number;
 
-    @IsString({message: 'Id Não encontrado'})
-    categoryId:string;
-
     @IsEnum(PaymentMethod, {message:'Enum inválido'})
     paymentMethod:PaymentMethod;
+
+    @IsString({message: 'O tipo não pode ser null'})
+    type:string;
 }

@@ -29,5 +29,5 @@ export class UserEntity {
         scale: 2,
         default: 0
     })
-    balance:number;
+    balance:string;
 }
