@@ -6,14 +6,12 @@ import { TransactionRequest } from './DTOs/transaction.request';
 import { Decimal } from 'decimal.js';
 import { UserEntity } from 'src/users/users.entity';
 import { CategoryEntity } from 'src/category/category.entity';
+import { TransactionResponse } from './DTOs/transaction.response';
+import { TransactionType } from 'src/enum/enums';
 
 @Injectable()
 export class TransactionsService {
     constructor(
-        @InjectRepository(TransactionEntity)
-        private readonly transactionRepository: Repository<TransactionEntity>,
-        @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>,
         private readonly dataSource: DataSource,
     ) { }
 
@@ -34,9 +32,16 @@ export class TransactionsService {
                 throw new NotFoundException('Erro ao buscar o usuário');
             }
 
-            const category = await queryRunner.manager.findOneBy(CategoryEntity, { id: categoryId });
+            const category = await queryRunner.manager.findOne(CategoryEntity, { 
+                where: {
+                    id: categoryId
+                },
+                relations: {
+                    user: true
+                }
+            });
 
-            if (!category) {
+            if (!category || category.user.id !== userId) {
                 throw new NotFoundException('Categoria Inválida');
             }
 
@@ -64,6 +69,7 @@ export class TransactionsService {
             await queryRunner.manager.save(user);
             await queryRunner.manager.save(transaction);
             await queryRunner.commitTransaction();
+            return TransactionResponse.fromTransaction(transaction);
         } catch (err) {
             await queryRunner.rollbackTransaction();
             throw err;
@@ -92,10 +98,13 @@ export class TransactionsService {
             const category = await queryRunner.manager.findOne(CategoryEntity, {
                 where: {
                     id: categoryId
+                },
+                relations: {
+                    user: true
                 }
             })
 
-            if (!category) {
+            if (!category || category.user.id !== userId) {
                 throw new NotFoundException('Erro ao buscar a categoria');
             }
 
@@ -111,18 +120,25 @@ export class TransactionsService {
             if (!transaction || transaction.user.id !== user.id) {
                 throw new NotFoundException('Erro ao buscar a Transação');
             }
+
+            const oldType = transaction.type;
             
-            if (transaction.type === 'Expenses') {
+            if (oldType === 'Expenses') {
                 user.balance = Decimal(user.balance).plus(transaction.value).toString();
             } else {
                 user.balance = Decimal(user.balance).minus(transaction.value).toString();
             }
 
+            if (transactionRequest.type === 'Incomes') {
+                var newType = TransactionType.INCOMES;
+            } else {
+                var newType = TransactionType.EXPENSES;
+            }
+
             transaction.description = transactionRequest.description;
             transaction.category = category;
             transaction.paymentMethod = transactionRequest.paymentMethod;
-            transaction.type = transactionRequest.type;
-            transaction.value = transactionRequest.value;
+            transaction.type = newType;
 
             if (transaction.type === 'Incomes') {
                 user.balance = Decimal(user.balance).plus(transaction.value).toString();
@@ -133,6 +149,7 @@ export class TransactionsService {
             await queryRunner.manager.save(transaction);
             await queryRunner.manager.save(user);
             await queryRunner.commitTransaction();
+            return TransactionResponse.fromTransaction(transaction);
         } catch (err) {
             await queryRunner.rollbackTransaction();
             throw err;

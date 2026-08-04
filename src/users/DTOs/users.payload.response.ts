@@ -8,7 +8,7 @@ export class UserResponse {
 
     email: string;
 
-    balance: number;
+    balance: string;
 
     static fromUser(
         user: UserEntity

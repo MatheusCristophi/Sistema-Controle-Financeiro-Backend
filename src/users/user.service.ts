@@ -14,7 +14,7 @@ export class UserService {
         private readonly dataSource: DataSource
     ) { }
 
-    async getBalance(userId: string): Promise<number> {
+    async getBalance(userId: string): Promise<string> {
 
         const user = await this.userRepository.findOneBy({ id: userId });
 

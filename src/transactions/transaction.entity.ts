@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, TableInheritance } from 'typeorm'
 import { CategoryEntity } from 'src/category/category.entity';
-import { PaymentMethod } from 'src/enum/payment.method';
+import { PaymentMethod, TransactionType } from 'src/enum/enums';
 import { UserEntity } from 'src/users/users.entity';
 
 @Entity('transaction_entity')
@@ -16,8 +16,12 @@ export class TransactionEntity {
     @Column({nullable:false})
     description:string;
 
-    @Column()
-    type:string;
+    @Column({
+        nullable:false,
+        type: 'enum',
+        enum: TransactionType
+    })
+    type:TransactionType;
 
     @Column({
         type:'decimal',
@@ -30,6 +34,7 @@ export class TransactionEntity {
     category:CategoryEntity;
     
     @Column({
+        nullable: false,
         type:'enum',
         enum: PaymentMethod
     })

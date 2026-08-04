@@ -27,7 +27,7 @@ export class UserEntity {
         type:'decimal',
         precision: 10,
         scale: 2,
-        default: 0
+        default: '0'
     })
     balance:string;
 }

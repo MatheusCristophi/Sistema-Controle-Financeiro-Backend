@@ -5,3 +5,8 @@ export enum PaymentMethod{
     DEBIT = 'DEBITO',
     CREDIT = 'CRÉDITO'
 }
+
+export enum TransactionType {
+    INCOMES = 'Incomes',
+    EXPENSES = 'Expenses'
+}

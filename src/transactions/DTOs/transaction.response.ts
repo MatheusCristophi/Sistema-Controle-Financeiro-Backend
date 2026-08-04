@@ -1,4 +1,4 @@
-import { PaymentMethod } from "src/enum/payment.method";
+import { PaymentMethod } from "src/enum/enums";
 import { TransactionEntity } from "../transaction.entity";
 
 export class TransactionResponse {

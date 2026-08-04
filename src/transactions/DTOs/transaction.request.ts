@@ -1,5 +1,5 @@
 import { IsDecimal, IsEnum, IsString, Length } from "class-validator";
-import { PaymentMethod } from "src/enum/payment.method";
+import { PaymentMethod, TransactionType } from "src/enum/enums";
 
 export class TransactionRequest {
     @Length(6,50, {message: "O nome deve ter entre 6 e 50 caracteres"})
@@ -11,6 +11,6 @@ export class TransactionRequest {
     @IsEnum(PaymentMethod, {message:'Enum inválido'})
     paymentMethod:PaymentMethod;
 
-    @IsString({message: 'O tipo não pode ser null'})
-    type:string;
+    @IsEnum(TransactionType, {message: 'Enum inválido'})
+    type:TransactionType;
 }
