@@ -1,98 +1,138 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Gerenciamento Financeiro — Backend (NestJS)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST para controle financeiro pessoal, com cadastro de usuários, categorias, transações (receitas e despesas) e um dashboard com resumos mensais. O saldo do usuário é atualizado automaticamente a cada transação criada, editada ou removida.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+- **NestJS 11** (Node.js / TypeScript)
+- **TypeORM 11** + **PostgreSQL**
+- **JWT** (`@nestjs/jwt`) para autenticação, com **Passport**
+- **bcrypt** para hash de senhas
+- **decimal.js** para cálculos monetários precisos
+- **class-validator** / **class-transformer** para validação de DTOs
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Arquitetura
 
-## Project setup
+- **Herança de tabela única (Single Table Inheritance)**: `TransactionEntity` é a entidade base, com `IncomeEntity` e `ExpensesEntity` como subtipos (`@ChildEntity`), diferenciados pela coluna `type`.
+- **Transações de banco de dados**: criação, atualização e exclusão de transações usam `QueryRunner` do TypeORM para garantir atomicidade entre a alteração da transação e a atualização do saldo (`balance`) do usuário.
+- **Guard de autenticação global por rota**: `AuthGuard` valida o JWT via header `Authorization: Bearer <token>` e injeta o payload em `request.user`. Rotas podem ser marcadas como públicas com o decorator `@Public()`.
+- **Decorator `@CurrentUser()`**: extrai o usuário autenticado (payload do JWT) diretamente nos controllers.
 
-```bash
-$ npm install
+## Módulos
+
+| Módulo | Responsabilidade |
+|---|---|
+| `auth` | Registro e login de usuários, emissão de JWT |
+| `users` | Consulta de saldo, atualização e exclusão do próprio usuário |
+| `category` | CRUD de categorias de transação, vinculadas ao usuário |
+| `transactions` | Criação, atualização e exclusão de receitas/despesas |
+| `dashboard` | Resumos: saldo total de receitas/despesas e listagem do mês corrente |
+
+## Modelo de dados
+
+**UserEntity**
+- `id` (uuid), `name`, `email` (único), `password` (hash), `balance` (decimal, padrão `0`)
+- Relações: `1:N` com `CategoryEntity` e `TransactionEntity`
+
+**CategoryEntity**
+- `id`, `description` (único), `createDate`
+- Relação: `N:1` com `UserEntity`, `1:N` com `TransactionEntity`
+
+**TransactionEntity** (base, `type` = `Incomes` ou `Expenses`)
+- `id`, `description`, `type`, `value` (decimal), `paymentMethod`, `transactionDate`
+- Relações: `N:1` com `UserEntity` e `CategoryEntity`
+
+**Enums**
+- `PaymentMethod`: `PIX`, `TRANSFERÊNCIA BANCARIA`, `BOLETO`, `DEBITO`, `CRÉDITO`
+- `TransactionType`: `Incomes`, `Expenses`
+
+## Endpoints
+
+Todas as rotas abaixo, exceto `/registrar` e `/logar`, exigem o header:
+```
+Authorization: Bearer <token>
 ```
 
-## Compile and run the project
+### Autenticação
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/register` | Cria um novo usuário |
+| POST | `/login` | Autentica e retorna o token JWT |
+
+### Usuários
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/users` | Retorna o saldo do usuário autenticado |
+| PUT | `/users` | Atualiza dados do usuário autenticado |
+| DELETE | `/users` | Remove o usuário autenticado |
+
+### Categorias
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/category` | Cria uma categoria |
+| POST | `/category/name` | Busca categoria pelo nome |
+| GET | `/category/all` | Lista todas as categorias do usuário |
+| PUT | `/category/:id` | Atualiza uma categoria |
+| DELETE | `/category/:id` | Remove uma categoria |
+
+### Transações
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/transactions/:id` | Cria uma transação na categoria `:id` (atualiza o saldo) |
+| PUT | `/transactions/:cid/:tid` | Atualiza a transação `:tid` da categoria `:cid` (recalcula o saldo) |
+| DELETE | `/transactions/:id` | Remove a transação `:id` (reverte o efeito no saldo) |
+
+### Dashboard
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/dashboard/income` | Soma total de receitas do usuário |
+| GET | `/dashboard/expense` | Soma total de despesas do usuário |
+| GET | `/dashboard/allincomes` | Lista as receitas do mês corrente |
+| GET | `/dashboard/allexpenses` | Lista as despesas do mês corrente |
+
+## Configuração
+
+1. Clone o repositório e instale as dependências:
+   ```bash
+   npm install
+   ```
+
+2. Crie um arquivo `.env` na raiz com base em `.env.example`:
+   ```env
+   DB_HOST=database_host
+   DB_PORT=database_port
+   DB_USERNAME=database_username
+   DB_PASSWORD=database_password
+   DB_DATABASE=database_name
+   JWT_SECRET=your_secret
+   JWT_EXPIRATION_TIME=time_in_miliseconds
+   ```
+
+3. Garanta que exista um banco PostgreSQL acessível com as credenciais informadas. As tabelas são criadas automaticamente pelo TypeORM (`synchronize: true`) — recomendado apenas para desenvolvimento.
+
+## Executando o projeto
 
 ```bash
-# development
-$ npm run start
+# download das dependências
+npm install
 
-# watch mode
-$ npm run start:dev
+# desenvolvimento (watch mode)
+npm run start:dev
 
-# production mode
-$ npm run start:prod
+# produção
+npm run build
+npm run start:prod
 ```
 
-## Run tests
+A API sobe por padrão na porta `3000` (ou na porta definida em `PORT`).
 
-```bash
-# unit tests
-$ npm run test
 
-# e2e tests
-$ npm run test:e2e
+## Observações
 
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `synchronize: true` está habilitado no `TypeOrmModule` — adequado para desenvolvimento, mas deve ser substituído por migrations em produção.
+- CORS está liberado para qualquer origem (`origin: true`) sem envio de credenciais.
