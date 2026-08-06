@@ -14,16 +14,16 @@ export class UserService {
         private readonly dataSource: DataSource
     ) { }
 
-    async getBalance(userId: string): Promise<string> {
+    async getBalance(userId: string) {
 
         const user = await this.userRepository.findOneBy({ id: userId });
-
         
-        if (!user) {
-            throw new NotFoundException("Usuário não encontrado");
-        } else {
-            return UserResponse.fromUser(user).balance;
-        }
+        if (!user) throw new NotFoundException("Usuário não encontrado"); 
+        
+        const balance = user.balance;
+
+        return balance;
+        
     }
 
     async updateUser(userRequest: UserRequest, currentUserId: string): Promise<UserResponse> {

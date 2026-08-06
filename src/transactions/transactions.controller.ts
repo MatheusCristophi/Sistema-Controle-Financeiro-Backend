@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { TransactionRequest } from './DTOs/transaction.request';
@@ -14,6 +14,7 @@ export class TransactionsController {
 
     @Post(':id')
     @UseGuards(AuthGuard)
+    @HttpCode(201)
     transactionsCreate(
         @Body() transactionRequest:TransactionRequest,
         @CurrentUser() user: JwtPayload,
@@ -24,6 +25,7 @@ export class TransactionsController {
 
     @Put(':cid/:tid')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     transactionsUpdate(
         @Body() transactionRequest:TransactionRequest,
         @CurrentUser() user: JwtPayload,
@@ -35,6 +37,7 @@ export class TransactionsController {
 
     @Delete(':id')
     @UseGuards(AuthGuard)
+    @HttpCode(204)
     transactionDelete(
         @CurrentUser() user:JwtPayload,
         @Param('id') transactionId:string

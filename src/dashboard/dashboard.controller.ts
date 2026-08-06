@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { CurrentUser } from 'src/auth/current.user';
 import type { JwtPayload } from 'src/auth/jwtpayload';
@@ -12,6 +12,7 @@ export class DashboardController {
 
     @Get('income')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     incomeBalance(
         @CurrentUser() user: JwtPayload
     ) {
@@ -20,6 +21,7 @@ export class DashboardController {
 
     @Get('expense')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     exepenseBalance(
         @CurrentUser() user: JwtPayload
     ) {
@@ -28,6 +30,7 @@ export class DashboardController {
 
     @Get('allincomes')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     allIncomesForMonth(
         @CurrentUser() user: JwtPayload
     ) {
@@ -36,6 +39,7 @@ export class DashboardController {
 
     @Get('allexpenses')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     allExpensesForMonth(
         @CurrentUser() user: JwtPayload
     ) {

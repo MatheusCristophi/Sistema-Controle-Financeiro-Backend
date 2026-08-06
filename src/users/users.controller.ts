@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Put, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CurrentUser } from 'src/auth/current.user';
@@ -14,12 +14,14 @@ export class UsersController {
 
     @Get()
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     async currentBalance(@CurrentUser() user:JwtPayload) {
         return this.userService.getBalance(user.sub);
     }
 
     @Put()
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     async userUpdate(
         @CurrentUser() user:JwtPayload,
         @Body() userRequest:UserRequest
@@ -29,6 +31,7 @@ export class UsersController {
 
     @Delete()
     @UseGuards(AuthGuard)
+    @HttpCode(204)
     async userDelete(
         @CurrentUser() user:JwtPayload
     ) {

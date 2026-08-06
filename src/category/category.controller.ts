@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CurrentUser } from 'src/auth/current.user';
@@ -13,6 +13,7 @@ export class CategoryController {
 
     @Post()
     @UseGuards(AuthGuard)
+    @HttpCode(201)
     categoryCreate(
         @CurrentUser() user:JwtPayload,
         @Body() categoryRequest: CategoryRequest
@@ -22,6 +23,7 @@ export class CategoryController {
 
     @Post('name')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     getCategoryName(
         @Body('name') name:string,
         @CurrentUser() user:JwtPayload
@@ -31,6 +33,7 @@ export class CategoryController {
 
     @Get('all')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     allCategories(
         @CurrentUser() user:JwtPayload
     ) {
@@ -39,6 +42,7 @@ export class CategoryController {
 
     @Put(':id')
     @UseGuards(AuthGuard)
+    @HttpCode(200)
     categoryUpdate(
         @Body() categoryRequest:CategoryRequest,
         @Param('id') categoryId:string,
@@ -49,6 +53,7 @@ export class CategoryController {
 
     @Delete(':id')
     @UseGuards(AuthGuard)
+    @HttpCode(204)
     categoryDelete(
         @Param('id') categoryId:string,
         @CurrentUser() user:JwtPayload
